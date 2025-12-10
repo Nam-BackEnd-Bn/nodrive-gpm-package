@@ -31,6 +31,15 @@ Professional browser profile management with anti-detection features using GPM (
 📈 **Export Functionality** - Append or overwrite data with ease  
 🎯 **Smart Updates** - Multi-cell, row, column, and matrix updates  
 
+### Captcha Service
+🤖 **reCAPTCHA v2/v3** - Automated captcha solving  
+⚡ **Fast Solving** - 5-15 second average solve time  
+🌐 **Proxy Support** - Solve with custom proxies  
+✅ **Verification** - Verify tokens with Google  
+💰 **Balance Monitoring** - Track account balance  
+🔄 **Auto-Polling** - Automatic result checking  
+⏱️ **Timeout Protection** - Configurable timeouts  
+
 ## Installation
 
 ### From PyPI (when published)
@@ -484,13 +493,83 @@ for i in range(1000):
 - **Write**: 100 requests/minute
 - Accounts automatically blocked for 65 seconds when limit reached
 
+### Google Sheets OAuth (Simple Alternative)
+
+For personal projects or simple use cases, use the OAuth2-based helper:
+
+```python
+from nodrive_gpm_package import GoogleSheetOAuth
+
+# Initialize with OAuth2 credentials
+helper = GoogleSheetOAuth()
+
+# Read sheet data (returns list of dictionaries)
+data = helper.read_sheet(
+    sheet_url='https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit',
+    sheet_name='Sheet1'
+)
+
+for row in data:
+    print(row)  # {'Name': 'John', 'Age': '25', ...}
+
+# Write to specific cell
+helper.write_sheet(
+    sheet_url='https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit',
+    sheet_name='Sheet1',
+    row=0,      # 0-based (becomes row 2 in sheet)
+    col='A',
+    value='Updated Value'
+)
+
+# Write bulk data
+data = [
+    ['Name', 'Age', 'City'],
+    ['John', '25', 'NYC'],
+    ['Jane', '30', 'LA']
+]
+
+helper.write_range(
+    sheet_url='https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit',
+    sheet_name='Sheet1',
+    start_row=0,
+    start_col='A',
+    values=data
+)
+```
+
+**OAuth Helper Features:**
+- ✅ Simple OAuth2 setup (browser consent on first run)
+- ✅ Perfect for personal sheets
+- ✅ Read data as dictionaries
+- ✅ Write individual cells or bulk ranges
+- ✅ Automatic credential caching
+- ✅ No Redis or service accounts required
+
+**Setup:**
+1. Create OAuth2 credentials in Google Cloud Console
+2. Save as `certs/oauth.json`
+3. Run code - browser will open for consent
+4. Credentials cached in `tokens/sheet.token`
+
 ### Google Sheets Documentation
 
-- 📘 **[Quick Start Guide](docs/GOOGLE_SHEETS_QUICKSTART.md)** - Complete setup and usage guide
-- 💻 **[Usage Examples](examples/google_sheets_usage.py)** - 15+ comprehensive examples
-- 🔧 **Setup**: 3-10 service accounts with Sheets API enabled
+- 📘 **[OAuth Helper Guide](docs/GOOGLE_SHEETS_OAUTH.md)** - Simple OAuth2 setup and usage
+- 📘 **[Service Account Guide](docs/GOOGLE_SHEETS_QUICKSTART.md)** - Advanced setup with rotation
+- 💻 **[OAuth Examples](examples/google_sheets_oauth_demo.py)** - Simple OAuth2 examples
+- 💻 **[Service Examples](examples/google_sheets_usage.py)** - 15+ advanced examples
 
-**Key Features:**
+**Choose Your Implementation:**
+
+| Feature | OAuth Helper | Service Account Service |
+|---------|--------------|------------------------|
+| Setup | ✅ Simple | ⚠️ Complex |
+| Best For | Personal/Small | Production/Heavy |
+| Rate Limiting | ❌ Manual | ✅ Automatic |
+| Account Rotation | ❌ No | ✅ Up to 10 accounts |
+| Queue System | ❌ No | ✅ Redis-based |
+| First Run | Browser consent | No interaction |
+
+**Service Account Features:**
 - ✅ Service account rotation with automatic rate limiting
 - ✅ Redis-based queue for batch operations
 - ✅ Sheet locking to prevent concurrent modifications
@@ -507,6 +586,117 @@ for i in range(1000):
 5. Share target sheets with all service account emails
 
 See the [Google Sheets Quick Start Guide](docs/GOOGLE_SHEETS_QUICKSTART.md) for detailed setup instructions.
+
+## Captcha Service
+
+Automated reCAPTCHA solving using the Achi Captcha API.
+
+### Quick Start - Captcha
+
+```python
+from nodrive_gpm_package import CaptchaService
+
+# Initialize service
+service = CaptchaService(
+    client_key='your_achicaptcha_api_key'
+)
+
+# Solve reCAPTCHA v2
+solution = service.solve_recaptcha_v2(
+    website_url='https://example.com',
+    website_key='6Le-wvkSAAAAAPBMRTvw0Q4Muexq9bi0DJwx_mJ-'
+)
+
+print(f"Captcha token: {solution.token}")
+print(f"Cost: ${solution.cost}")
+```
+
+### Solve with Proxy
+
+```python
+solution = service.solve_recaptcha_v2(
+    website_url='https://example.com',
+    website_key='6Le-wvkSAAAAAPBMRTvw0Q4Muexq9bi0DJwx_mJ-',
+    proxy='123.45.67.89:8080:username:password'
+)
+```
+
+### Solve reCAPTCHA v3
+
+```python
+solution = service.solve_recaptcha_v3(
+    website_url='https://example.com',
+    website_key='6LcR_okUAAAAAPYrPe-HK_0RULO1aZM15ENyM-Mf',
+    action='homepage',
+    min_score=0.7
+)
+```
+
+### Verify Solution
+
+```python
+# Verify with Google (requires google_secret_key)
+verification = service.verify_recaptcha(solution.token)
+
+if verification.success:
+    print("✅ Valid captcha!")
+else:
+    print("❌ Invalid")
+```
+
+### Integration with Browser
+
+```python
+import asyncio
+from nodrive_gpm_package import GPMClient, CaptchaService
+
+async def main():
+    captcha_service = CaptchaService(client_key='your_key')
+    gpm_client = GPMClient()
+    
+    # Launch browser
+    browser = await gpm_client.launch("profile")
+    page = await browser.get("https://example.com/captcha-page")
+    
+    # Solve captcha
+    solution = captcha_service.solve_recaptcha_v2(
+        website_url=page.url,
+        website_key='6Le-wvkSAA...'
+    )
+    
+    # Inject token
+    await page.evaluate(f"""
+        document.getElementById('g-recaptcha-response').innerHTML = '{solution.token}';
+    """)
+    
+    # Submit form...
+    gpm_client.close("profile")
+
+asyncio.run(main())
+```
+
+### Captcha Documentation
+
+- 📘 **[Complete Guide](docs/CAPTCHA_SERVICE.md)** - Full API reference and examples
+- 💻 **[Usage Examples](examples/captcha_usage.py)** - Comprehensive code examples
+
+**Setup Requirements:**
+1. Sign up at [AchiCaptcha](https://achicaptcha.com)
+2. Add funds to account
+3. Get API client key from dashboard
+4. (Optional) Get Google reCAPTCHA secret for verification
+
+**Features:**
+- ✅ reCAPTCHA v2 solving (with/without proxy)
+- ✅ reCAPTCHA v3 solving with score
+- ✅ Token verification with Google
+- ✅ Balance checking
+- ✅ Configurable timeouts and polling
+- ✅ Debug mode for troubleshooting
+
+**Pricing:**
+- reCAPTCHA v2: ~$0.001 per solve
+- reCAPTCHA v3: ~$0.002 per solve
 
 ## Configuration Options
 
@@ -645,10 +835,3 @@ For issues and questions:
   - Read/write operations with row offset support
   - Export functionality (Append/Overwrite)
   - Timeout protection for heavy calculations
-#   n o d r i v e - g p m - p a c k a g e 
- 
- #   n o d r i v e - g p m - p a c k a g e 
- 
- #   n o d r i v e - g p m - p a c k a g e 
- 
- 

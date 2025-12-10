@@ -17,6 +17,17 @@ from .google_sheet_service import (
     SheetValUpdateCell,
     ExportType,
 )
+from .google_sheet_oauth import (
+    GoogleSheetOAuth,
+    GoogleSheetOAuthException,
+    HelperGGSheet,  # Backward compatibility alias
+)
+from .captcha_service import (
+    CaptchaService,
+    CaptchaServiceException,
+    CaptchaSolution,
+    RecaptchaVerification,
+)
 
 __all__ = [
     "ProfileMonitor",
@@ -32,4 +43,11 @@ __all__ = [
     "SheetInfo",
     "SheetValUpdateCell",
     "ExportType",
+    "GoogleSheetOAuth",
+    "GoogleSheetOAuthException",
+    "HelperGGSheet",
+    "CaptchaService",
+    "CaptchaServiceException",
+    "CaptchaSolution",
+    "RecaptchaVerification",
 ]

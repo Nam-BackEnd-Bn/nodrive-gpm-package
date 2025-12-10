@@ -96,6 +96,63 @@ Learn how to:
 python examples/advanced_di.py
 ```
 
+### 7. google_sheets_oauth_demo.py
+**Google Sheets OAuth Helper (Simple)**
+
+Learn how to:
+- Use OAuth2 authentication for Google Sheets
+- Read sheet data into dictionaries
+- Write to individual cells
+- Write bulk data ranges
+- Convert column indices/names
+
+```bash
+python examples/google_sheets_oauth_demo.py
+```
+
+### 8. google_sheets_usage.py
+**Google Sheets Service (Advanced)**
+
+Learn how to:
+- Use service account authentication
+- Service account rotation for rate limiting
+- Redis-based queue operations
+- Export data with Append/Overwrite modes
+- Batch updates with locking
+
+```bash
+python examples/google_sheets_usage.py
+```
+
+### 9. google_drive_usage.py
+**Google Drive Operations**
+
+Learn how to:
+- Upload files to Google Drive
+- Download files from Drive
+- List files in folders
+- Delete files
+- Manage storage quota
+
+```bash
+python examples/google_drive_usage.py
+```
+
+### 10. captcha_usage.py
+**Captcha Solving Service**
+
+Learn how to:
+- Solve reCAPTCHA v2 challenges
+- Solve reCAPTCHA v3 challenges
+- Use proxies for solving
+- Verify captcha tokens
+- Check account balance
+- Integrate with browser automation
+
+```bash
+python examples/captcha_usage.py
+```
+
 ## Environment Configuration
 
 You can create a `.env` file in the root directory:

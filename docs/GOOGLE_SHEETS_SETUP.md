@@ -533,7 +533,7 @@ def health_check():
 For additional help:
 - 📖 [Quick Start Guide](GOOGLE_SHEETS_QUICKSTART.md)
 - 💻 [Usage Examples](../examples/google_sheets_usage.py)
-- 🐛 [GitHub Issues](https://github.com/yourusername/nodrive-gpm-package/issues)
+- 🐛 [GitHub Issues](https://github.com/Nam-BackEnd-Bn/nodrive-gpm-package/issues)
 
 ## Summary Checklist
 

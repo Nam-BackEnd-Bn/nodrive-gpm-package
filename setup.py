@@ -42,7 +42,7 @@ setup(
     description="Browser Profile Management with Anti-Detection using GPM and nodriver",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/nodrive-gpm-package",
+    url="https://github.com/Nam-BackEnd-Bn/nodrive-gpm-package",
     packages=find_packages(exclude=["tests", "tests.*", "examples"]),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -72,7 +72,7 @@ setup(
     },
     keywords="gpm browser automation anti-detection nodriver selenium chrome",
     project_urls={
-        "Bug Reports": "https://github.com/yourusername/nodrive-gpm-package/issues",
-        "Source": "https://github.com/yourusername/nodrive-gpm-package",
+        "Bug Reports": "https://github.com/Nam-BackEnd-Bn/nodrive-gpm-package/issues",
+        "Source": "https://github.com/Nam-BackEnd-Bn/nodrive-gpm-package",
     },
 )

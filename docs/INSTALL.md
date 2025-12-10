@@ -308,7 +308,7 @@ python examples/basic_usage.py
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/nodrive-gpm-package.git
+git clone https://github.com/Nam-BackEnd-Bn/nodrive-gpm-package.git
 cd nodrive-gpm-package
 
 # Install with dev dependencies

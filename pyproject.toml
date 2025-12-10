@@ -41,5 +41,5 @@ optional = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/nodrive-gpm-package"
-Issues = "https://github.com/yourusername/nodrive-gpm-package/issues"
+Homepage = "https://github.com/Nam-BackEnd-Bn/nodrive-gpm-package"
+Issues = "https://github.com/Nam-BackEnd-Bn/nodrive-gpm-package/issues"

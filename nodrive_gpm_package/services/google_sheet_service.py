@@ -9,6 +9,7 @@ import re
 import time
 import logging
 import asyncio
+import json
 from typing import Optional, List, Dict, Any, Literal, Union
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -32,7 +33,10 @@ try:
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
-    logging.warning("Redis not available. Queue functionality will be disabled. Install with: pip install redis")
+    logging.warning("Redis not available. Falling back to local JSON storage. Install with: pip install redis")
+
+# Import JSONStorage fallback
+from ..utils.UtilStorage import JSONStorage
 
 
 logger = logging.getLogger(__name__)
@@ -229,29 +233,36 @@ class GoogleSheetService:
         # Verify service account files exist
         self._verify_service_accounts()
         
-        # Setup Redis if available and enabled
-        self.redis_client: Optional[Redis] = None
-        self.enable_queue = enable_queue and REDIS_AVAILABLE
+        # Setup Redis or JSON fallback storage
+        self.redis_client: Optional[Union[Redis, JSONStorage]] = None
+        self.enable_queue = enable_queue
         
-        if self.enable_queue:
-            try:
-                self.redis_client = redis.Redis(
-                    host=redis_host,
-                    port=redis_port,
-                    db=redis_db,
-                    password=redis_password,
-                    decode_responses=True
-                )
-                # Test connection
-                self.redis_client.ping()
-                logger.info("✅ Redis connection established")
-            except Exception as e:
-                logger.warning(f"❌ Redis connection failed: {e}. Queue functionality disabled.")
-                self.enable_queue = False
-                self.redis_client = None
+        if enable_queue:
+            if REDIS_AVAILABLE:
+                # Try Redis first
+                try:
+                    self.redis_client = redis.Redis(
+                        host=redis_host,
+                        port=redis_port,
+                        db=redis_db,
+                        password=redis_password,
+                        decode_responses=True
+                    )
+                    # Test connection
+                    self.redis_client.ping()
+                    logger.info("✅ Redis connection established")
+                except Exception as e:
+                    logger.warning(f"❌ Redis connection failed: {e}. Falling back to JSON storage.")
+                    # Fallback to JSON storage
+                    self.redis_client = JSONStorage()
+                    logger.info("✅ Using JSON file storage for queue operations")
+            else:
+                # Use JSON storage as fallback when Redis not installed
+                logger.info("📦 Redis not available. Using JSON file storage for queue operations")
+                self.redis_client = JSONStorage()
         else:
-            if enable_queue and not REDIS_AVAILABLE:
-                logger.warning("Queue functionality requested but Redis not available")
+            logger.info("Queue functionality disabled")
+            self.redis_client = None
     
     def _verify_service_accounts(self):
         """Verify that service account files exist"""

@@ -26,10 +26,11 @@ Professional browser profile management with anti-detection features using GPM (
 📊 **Read/Write Operations** - Read and update sheet data efficiently  
 🔄 **Service Account Rotation** - Automatic rotation across 10 service accounts  
 ⚡ **Rate Limiting** - Smart rate limit handling (300 read/100 write per minute)  
-📦 **Batch Operations** - Redis-based queue for bulk updates  
+📦 **Batch Operations** - Queue system for bulk updates (Redis or local JSON)  
 🔒 **Sheet Locking** - Prevent concurrent modifications  
 📈 **Export Functionality** - Append or overwrite data with ease  
 🎯 **Smart Updates** - Multi-cell, row, column, and matrix updates  
+💾 **Auto Fallback** - Works without Redis using local JSON storage  
 
 ### Captcha Service
 🤖 **reCAPTCHA v2/v3** - Automated captcha solving  
@@ -571,7 +572,8 @@ helper.write_range(
 
 **Service Account Features:**
 - ✅ Service account rotation with automatic rate limiting
-- ✅ Redis-based queue for batch operations
+- ✅ Queue system for batch operations (Redis or JSON fallback)
+- ✅ **Auto fallback to local JSON storage when Redis unavailable**
 - ✅ Sheet locking to prevent concurrent modifications
 - ✅ Timeout protection for heavy calculations
 - ✅ Row offset support for flexible header positioning
@@ -582,7 +584,7 @@ helper.write_range(
 1. Google Cloud Project with Sheets API enabled
 2. 3-10 Service Account credentials (JSON key files)
 3. Service accounts saved in `tokens/service-account/` directory
-4. Redis server (optional, for queue functionality)
+4. Redis server (optional, auto-fallback to JSON storage if unavailable)
 5. Share target sheets with all service account emails
 
 See the [Google Sheets Quick Start Guide](docs/GOOGLE_SHEETS_QUICKSTART.md) for detailed setup instructions.
@@ -830,7 +832,8 @@ For issues and questions:
 - **NEW:** Google Sheets service integration
   - Service account rotation (up to 10 accounts)
   - Automatic rate limiting (300 read/100 write per minute)
-  - Redis-based queue for batch operations
+  - Queue system for batch operations (Redis or JSON fallback)
+  - **Auto fallback to local JSON storage when Redis unavailable**
   - Sheet locking mechanism
   - Read/write operations with row offset support
   - Export functionality (Append/Overwrite)

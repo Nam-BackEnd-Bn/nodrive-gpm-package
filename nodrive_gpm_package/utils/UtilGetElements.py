@@ -1,5 +1,5 @@
 import asyncio
-import ai_image_voice.utils.UtilChecker as UtilChecker
+from . import UtilChecker
 from typing import List, Literal, Union, Optional
 from Levenshtein import distance
 import nodriver as nd

@@ -1,6 +1,6 @@
 import asyncio, time, random, nodriver as nd, re
 from typing import Literal, Dict, List, Union
-from utils import UtilActionsBrowser, UtilUserAgent
+from . import UtilActionsBrowser, UtilUserAgent
 
 ElementsTag = Literal[
     "textarea",

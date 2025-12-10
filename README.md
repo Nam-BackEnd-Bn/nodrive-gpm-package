@@ -645,7 +645,10 @@ For issues and questions:
   - Read/write operations with row offset support
   - Export functionality (Append/Overwrite)
   - Timeout protection for heavy calculations
-#   n o d r i v e - g p m - p a c k a g e  
- #   n o d r i v e - g p m - p a c k a g e  
- #   n o d r i v e - g p m - p a c k a g e  
+#   n o d r i v e - g p m - p a c k a g e 
+ 
+ #   n o d r i v e - g p m - p a c k a g e 
+ 
+ #   n o d r i v e - g p m - p a c k a g e 
+ 
  

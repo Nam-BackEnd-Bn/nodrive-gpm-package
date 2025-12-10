@@ -19,3 +19,4 @@ redis>=5.0.0  # For queue-based batch operations
 # Optional but recommended
 python-dotenv>=1.0.0  # For loading .env files
 PySocks>=1.7.1  # For SOCKS proxy support
+mutagen>=1.47.0  # For audio file metadata

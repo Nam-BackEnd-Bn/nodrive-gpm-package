@@ -16,7 +16,11 @@ google-api-python-client>=2.100.0
 # Google Sheets queue functionality (optional)
 redis>=5.0.0  # For queue-based batch operations
 
+# Utility dependencies
+python-Levenshtein>=0.21.0  # For string similarity matching in UtilGetElements
+pywinauto>=0.6.8  # For Windows automation in UtilSystem
+mutagen>=1.47.0  # For audio file metadata
+
 # Optional but recommended
 python-dotenv>=1.0.0  # For loading .env files
 PySocks>=1.7.1  # For SOCKS proxy support
-mutagen>=1.47.0  # For audio file metadata

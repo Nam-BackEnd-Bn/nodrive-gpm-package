@@ -325,45 +325,67 @@ async def getElement(
         await goOnTopBrowser(tab=tab)
 
     try:
-        if selector:
-            if typeFind == "multi":
-                elements = await tab.select_all(selector, timeout)
-                return elements
-            else:
-                elements = await tab.select_all(selector, timeout)
-
-                elmChose = None
-
-                if text:
-                    for elm in elements:
-                        if isContains:
-                            if text.strip().lower() in elm.text:
-                                print("🦋🦋🦋 Element:::", elm)
-                                elmChose = elm
-                                break
-                        else:
-                            if text == elm.text:
-                                print("🦋🦋🦋 Element:::", elm)
-                                elmChose = elm
-                                break
+        # Wrap element finding in asyncio timeout to ensure it doesn't hang indefinitely
+        async def _find_elements():
+            if selector:
+                if typeFind == "multi":
+                    elements = await tab.select_all(selector, timeout)
+                    return elements
                 else:
-                    elm = elements[0]
-                    elmChose = elm
+                    elements = await tab.select_all(selector, timeout)
+                    
+                    # Check if elements list is empty
+                    if not elements or len(elements) == 0:
+                        raise IndexError("Element not found - empty elements list")
 
-                if not elmChose:
-                    raise Exception("Element not found")
+                    elmChose = None
 
-                return elmChose
+                    if text:
+                        for elm in elements:
+                            if isContains:
+                                if text.strip().lower() in elm.text:
+                                    print("🦋🦋🦋 Element:::", elm)
+                                    elmChose = elm
+                                    break
+                            else:
+                                if text == elm.text:
+                                    print("🦋🦋🦋 Element:::", elm)
+                                    elmChose = elm
+                                    break
+                    else:
+                        elm = elements[0]
+                        elmChose = elm
 
-        else:
-            elements = await tab.xpath(xpath=xpath, timeout=timeout)
-            if typeFind == "multi":
-                return elements
+                    if not elmChose:
+                        raise Exception("Element not found")
+
+                    return elmChose
+
             else:
-                element = elements[0]
-                if not element:
-                    raise Exception("Element not found")
-                return element
+                elements = await tab.xpath(xpath=xpath, timeout=timeout)
+                if typeFind == "multi":
+                    return elements
+                else:
+                    # Check if elements list is empty before accessing index
+                    if not elements or len(elements) == 0:
+                        raise IndexError("Element not found - empty elements list")
+                    element = elements[0]
+                    if not element:
+                        raise Exception("Element not found")
+                    return element
+        
+        # Add extra 5 seconds buffer to the timeout to account for any delays
+        try:
+            return await asyncio.wait_for(_find_elements(), timeout=timeout + 5)
+        except asyncio.TimeoutError:
+            raise TimeoutError(f"Element finding timed out after {timeout + 5} seconds")
+            
+    except IndexError as e:
+        # Re-raise IndexError with more context
+        raise IndexError(f"Element not found after timeout: {e}")
+    except TimeoutError as e:
+        # Re-raise timeout errors
+        raise
     except Exception as e:
         raise Exception("🔴🦋🦋🦋🔴Get element err:", e)
 

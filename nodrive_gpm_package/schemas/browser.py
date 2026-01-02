@@ -15,6 +15,8 @@ class BrowserLaunchRequest(BaseModel):
     persistent_position: int = Field(0, description="Browser window position index")
     window_width: Optional[int] = Field(None, description="Browser window width")
     window_height: Optional[int] = Field(None, description="Browser window height")
+    window_x: Optional[int] = Field(None, description="Browser window X position")
+    window_y: Optional[int] = Field(None, description="Browser window Y position")
     window_scale: Optional[float] = Field(None, description="Browser window scale")
     
     class Config:

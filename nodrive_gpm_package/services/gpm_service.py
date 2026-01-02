@@ -69,6 +69,8 @@ class GPMService:
         persistent_position: int = 0,
         window_width: Optional[int] = None,
         window_height: Optional[int] = None,
+        window_x: Optional[int] = None,
+        window_y: Optional[int] = None,
         window_scale: Optional[float] = None,
     ) -> Optional[nd.Browser]:
         """
@@ -101,6 +103,8 @@ class GPMService:
             persistent_position=persistent_position,
             window_width=window_width or self.config.browser_width,
             window_height=window_height or self.config.browser_height,
+            window_x=window_x,
+            window_y=window_y,
             window_scale=window_scale or self.config.browser_scale,
         )
         
@@ -269,11 +273,15 @@ class GPMService:
         print(f"🚀 [{profile_name}] Starting new profile...")
         
         # Calculate window position
-        row = request.persistent_position // self.config.max_browsers_per_line
-        col = request.persistent_position % self.config.max_browsers_per_line
-        
-        pos_x = col * request.window_width
-        pos_y = row * request.window_height
+        if request.window_x is not None and request.window_y is not None:
+            pos_x = request.window_x
+            pos_y = request.window_y
+        else:
+            row = request.persistent_position // self.config.max_browsers_per_line
+            col = request.persistent_position % self.config.max_browsers_per_line
+            
+            pos_x = col * request.window_width
+            pos_y = row * request.window_height
         
         try:
             # Start profile via API

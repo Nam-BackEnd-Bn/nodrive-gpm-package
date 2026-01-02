@@ -11,7 +11,7 @@ import sys
 from .config import GPMConfig, get_config
 from .services import GPMService
 from .enums import ProxyType, ProfileStatus
-from .schemas import ProfileResponse
+from .schemas import ProfileResponse, ProfileUpdateRequest
 
 
 def get_screen_size() -> Tuple[int, int]:
@@ -299,6 +299,31 @@ class GPMClient:
             ```
         """
         return self.service.api_client.get_profiles()
+    
+    def get_profile_by_name(self, profile_name: str) -> ProfileResponse:
+        """
+        Get a profile by name
+        
+        Args:
+            profile_name: Name of the profile
+            
+        Returns:
+            ProfileResponse object
+        """
+        return self.service.api_client.get_profile_by_name(profile_name)
+    
+    def update_profile(self, profile_name: str, request: ProfileUpdateRequest) -> ProfileResponse:
+        """
+        Update a profile by name
+        
+        Args:
+            profile_name: Name of the profile
+            request: ProfileUpdateRequest object
+    
+        Returns:
+            ProfileResponse object
+        """
+        return self.service.api_client.update_profile(profile_name, request)
     
     def delete_profile(self, profile_name: str) -> bool:
         """

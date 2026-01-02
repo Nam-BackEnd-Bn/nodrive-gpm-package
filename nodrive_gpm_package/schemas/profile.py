@@ -44,15 +44,41 @@ class ProfileCreateRequest(BaseModel):
 
 
 class ProfileUpdateRequest(BaseModel):
-    """Request schema for updating a profile"""
+    """Request schema for updating a profile
+    
+    According to GPM API documentation: https://docs.gpmloginapp.com/api-document/cap-nhat-profile
+    All fields are optional - only provided fields will be updated.
+    """
     
     profile_name: Optional[str] = Field(None, description="New profile name")
     group_id: Optional[int] = Field(None, description="Group ID")
-    raw_proxy: Optional[str] = Field(None, description="Proxy string")
-    startup_urls: Optional[str] = Field(None, description="Startup URLs")
+    raw_proxy: Optional[str] = Field(None, description="Proxy string (IP:Port:User:Pass or socks5://IP:Port:User:Pass)")
+    startup_urls: Optional[str] = Field(None, description="Comma-separated startup URLs")
     note: Optional[str] = Field(None, description="Profile notes")
-    color: Optional[str] = Field(None, description="Profile color tag")
-    user_agent: Optional[str] = Field(None, description="User agent")
+    color: Optional[str] = Field(None, description="Profile color tag (hex color code, e.g., #FF5733)")
+    user_agent: Optional[str] = Field(None, description="User agent (use 'auto' for automatic)")
+    
+    # Anti-detection settings
+    is_noise_canvas: Optional[bool] = Field(None, description="Add canvas noise")
+    is_noise_webgl: Optional[bool] = Field(None, description="Add WebGL noise")
+    is_noise_client_rect: Optional[bool] = Field(None, description="Add client rect noise")
+    is_noise_audio_context: Optional[bool] = Field(None, description="Add audio context noise")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "profile_name": "updated_profile",
+                "raw_proxy": "socks5://123.45.67.89:1080:user:pass",
+                "startup_urls": "http://example.com",
+                "note": "Updated profile",
+                "color": "#FF5733",
+                "user_agent": "auto",
+                "is_noise_canvas": False,
+                "is_noise_webgl": False,
+                "is_noise_client_rect": False,
+                "is_noise_audio_context": True
+            }
+        }
 
 
 class ProfileResponse(BaseModel):

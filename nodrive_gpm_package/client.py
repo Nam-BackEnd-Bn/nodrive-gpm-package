@@ -3,14 +3,64 @@ Easy-to-use GPM Client Interface
 Simplified API for common use cases
 """
 
-from typing import Optional, List
+from typing import Optional, List, Tuple
 import asyncio
 import nodriver as nd
+import sys
 
 from .config import GPMConfig, get_config
 from .services import GPMService
 from .enums import ProxyType, ProfileStatus
 from .schemas import ProfileResponse
+
+
+def get_screen_size() -> Tuple[int, int]:
+    """
+    Get the primary screen size (width, height).
+    Uses screeninfo library if available, with fallback methods.
+    
+    Returns:
+        Tuple of (width, height) in pixels
+    """
+    try:
+        # Try using screeninfo first (most accurate)
+        try:
+            from screeninfo import get_monitors
+            monitors = get_monitors()
+            if monitors:
+                # Get primary monitor (usually first one)
+                primary_monitor = monitors[0]
+                return (primary_monitor.width, primary_monitor.height)
+        except ImportError:
+            # screeninfo not installed, use fallback
+            pass
+        except Exception as e:
+            print(f"Error using screeninfo: {e}, using fallback")
+        
+        # Fallback 1: Windows API
+        if sys.platform == 'win32':
+            import ctypes
+            user32 = ctypes.windll.user32
+            width = user32.GetSystemMetrics(0)  # SM_CXSCREEN
+            height = user32.GetSystemMetrics(1)  # SM_CYSCREEN
+            return (width, height)
+        
+        # Fallback 2: tkinter (cross-platform)
+        try:
+            import tkinter as tk
+            root = tk.Tk()
+            width = root.winfo_screenwidth()
+            height = root.winfo_screenheight()
+            root.destroy()
+            return (width, height)
+        except:
+            pass
+        
+        # Final fallback
+        return (1920, 1080)
+    except Exception as e:
+        print(f"Error getting screen size: {e}, using default")
+        return (1920, 1080)
 
 
 class GPMClient:
@@ -80,6 +130,10 @@ class GPMClient:
         proxy_type: Optional[str] = None,
         proxy: Optional[str] = None,
         position: int = 0,
+        grid_row: Optional[int] = None,
+        grid_col: Optional[int] = None,
+        grid_rows: Optional[int] = None,
+        grid_cols: Optional[int] = None,
         **kwargs
     ) -> Optional[nd.Browser]:
         """
@@ -90,12 +144,17 @@ class GPMClient:
         - Configuring proxy
         - Checking and cleaning up existing instances
         - Connecting to the browser
+        - Calculating window dimensions and position based on grid layout
         
         Args:
             profile_name: Name of the profile to launch
             proxy_type: Proxy type ("http", "socks5", etc.)
             proxy: Proxy string in format "IP:Port:User:Pass" or "IP:Port"
-            position: Window position index (0, 1, 2, ...)
+            position: Window position index (0, 1, 2, ...) - used if grid parameters not provided
+            grid_row: Row index in the grid (0-based)
+            grid_col: Column index in the grid (0-based)
+            grid_rows: Total number of rows in the grid
+            grid_cols: Total number of columns in the grid
             **kwargs: Additional arguments (window_width, window_height, window_scale, max_retries)
             
         Returns:
@@ -113,9 +172,18 @@ class GPMClient:
                 proxy="123.45.67.89:1080:user:pass"
             )
             
-            # Custom window size
+            # With grid layout (automatically calculates window size and position)
             browser = await client.launch(
                 "profile3",
+                grid_row=0,
+                grid_col=0,
+                grid_rows=2,
+                grid_cols=5
+            )
+            
+            # Custom window size (overrides grid calculation)
+            browser = await client.launch(
+                "profile4",
                 window_width=1920,
                 window_height=1080,
                 position=0
@@ -131,13 +199,50 @@ class GPMClient:
                 print(f"⚠️ Invalid proxy type: {proxy_type}, ignoring proxy")
                 proxy = None
         
-        return await self.service.launch_browser(
+        # Calculate window dimensions and position from grid if provided
+        # Store grid info for post-launch positioning
+        grid_info = None
+        if grid_row is not None and grid_col is not None and grid_rows is not None and grid_cols is not None:
+            screen_width, screen_height = get_screen_size()
+            
+            # Calculate window dimensions to fill full screen divided by grid (no margins)
+            window_width = screen_width // grid_cols
+            window_height = screen_height // grid_rows
+            
+            # Calculate window position based on grid position
+            window_x = grid_col * window_width
+            window_y = grid_row * window_height
+            
+            # Store grid info for post-launch positioning
+            grid_info = {
+                'x': window_x,
+                'y': window_y,
+                'width': window_width,
+                'height': window_height
+            }
+            
+            # Override kwargs with calculated dimensions if not explicitly provided
+            if 'window_width' not in kwargs:
+                kwargs['window_width'] = window_width
+            if 'window_height' not in kwargs:
+                kwargs['window_height'] = window_height
+            if 'window_x' not in kwargs:
+                kwargs['window_x'] = window_x
+            if 'window_y' not in kwargs:
+                kwargs['window_y'] = window_y
+            
+            print(f"📐 [{profile_name}] Grid layout: row={grid_row}, col={grid_col}, "
+                  f"window_size=({window_width}x{window_height}), position=({window_x}, {window_y})")
+        
+        browser = await self.service.launch_browser(
             profile_name=profile_name,
             proxy_type=proxy_type_enum,
             proxy_string=proxy,
             persistent_position=position,
             **kwargs
         )
+        
+        return browser
     
     def close(self, profile_name: str) -> bool:
         """

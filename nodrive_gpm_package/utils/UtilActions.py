@@ -513,7 +513,8 @@ async def sendKey(
             if isEnter:
                 await asyncio.sleep(1)
                 # Send Enter key using element's send_keys method
-                await _sendEnterJS(tab=tab)
+                # await _sendEnterJS(tab=tab)
+                await _sendEnterJS(elm=elm)
 
             return True
 

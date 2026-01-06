@@ -15,7 +15,7 @@ class GmailService:
         self.input_2fa_service = InputTwoFAService(tab, email['code2FA'])
 
     async def login_gmail(self) -> bool:
-        if self.account_service.check_and_click_existing_account():
+        if await self.account_service.check_and_click_existing_account():
             return True
 
         if not await self.input_mail_service.set_input_email():

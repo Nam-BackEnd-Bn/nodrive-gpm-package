@@ -1,5 +1,11 @@
 import asyncio, time, random, nodriver as nd, re
 from typing import Literal, Dict, List, Union
+try:
+    import win32api
+    import win32con
+except ImportError:
+    win32api = None
+    win32con = None
 from . import UtilActionsBrowser, UtilUserAgent
 
 ElementsTag = Literal[
@@ -1060,91 +1066,160 @@ async def scrollElementToTopOrBottom(
 
 async def zoomPage(
     tab: nd.Tab,
-    action: Literal["in", "out", "reset"] = "in",
-    times: int = 1
+    action: Literal["in", "out", "reset", "custom"] = "in",
+    times: int = 1,
+    customScale: float = None
 ) -> bool:
     """
-    Zoom page in or out using keyboard shortcuts
-    action: "in" (Ctrl + +), "out" (Ctrl + -), "reset" (Ctrl + 0)
+    Zoom page using OS-level Input (Win32 API).
+    TRULY mimics "Hold Ctrl + Scroll" by sending physical background input events.
+    Requires pywin32.
+    
+    action: "in", "out", "reset", "custom"
+    customScale: Target devicePixelRatio (e.g. 0.5 for 50%). Used when action="custom".
     """
-    try:
-        modifier = 2  # Control key
+    if not win32api or not win32con:
+        print("❌ Win32 API not available. Cannot perform physical zoom.")
+        return False
         
-        for _ in range(times):
-            if action == "in":
-                # Ctrl + = (Chrome usually treats Ctrl+= as Zoom In)
-                await tab.send(
-                    nd.cdp.input_.dispatch_key_event(
-                        type_="keyDown",
-                        modifiers=modifier,
-                        text="=",
-                        unmodified_text="=",
-                        key="=",
-                        code="Equal",
-                        windows_virtual_key_code=187
-                    )
-                )
-                await tab.send(
-                    nd.cdp.input_.dispatch_key_event(
-                        type_="keyUp",
-                        modifiers=modifier,
-                        key="=",
-                        code="Equal",
-                        windows_virtual_key_code=187
-                    )
-                )
-            elif action == "out":
-                # Ctrl + -
-                await tab.send(
-                    nd.cdp.input_.dispatch_key_event(
-                        type_="keyDown",
-                        modifiers=modifier,
-                        text="-",
-                        unmodified_text="-",
-                        key="-",
-                        code="Minus",
-                        windows_virtual_key_code=189
-                    )
-                )
-                await tab.send(
-                    nd.cdp.input_.dispatch_key_event(
-                        type_="keyUp",
-                        modifiers=modifier,
-                        key="-",
-                        code="Minus",
-                        windows_virtual_key_code=189
-                    )
-                )
-            elif action == "reset":
-                # Ctrl + 0
-                await tab.send(
-                    nd.cdp.input_.dispatch_key_event(
-                        type_="keyDown",
-                        modifiers=modifier,
-                        text="0",
-                        unmodified_text="0",
-                        key="0",
-                        code="Digit0",
-                        windows_virtual_key_code=48
-                    )
-                )
-                await tab.send(
-                    nd.cdp.input_.dispatch_key_event(
-                        type_="keyUp",
-                        modifiers=modifier,
-                        key="0",
-                        code="Digit0",
-                        windows_virtual_key_code=48
-                    )
-                )
-                break # Reset only needs to run once
-            
-            # Small delay between multiple zooms
-            if times > 1:
-                await asyncio.sleep(0.1)
+    try:
+        import win32gui
+    except ImportError:
+        print("❌ Win32 GUI not available.")
+        return False
+
+    try:
+        # 1. Helper to find window and move mouse
+        async def activate_window_and_move_mouse():
+            try:
+                # Mark window to find it
+                original_title = await tab.evaluate("document.title")
+                unique_id = str(int(time.time() * 1000))
+                marked_title = f"{original_title}_{unique_id}"
+                await tab.evaluate(f"document.title = '{marked_title}';")
+                await asyncio.sleep(0.2)
                 
+                found_hwnd = None
+                def callback(hwnd, windows):
+                    if win32gui.IsWindowVisible(hwnd):
+                        title = win32gui.GetWindowText(hwnd)
+                        if marked_title in title:
+                            windows.append(hwnd)
+                
+                hwnds = []
+                win32gui.EnumWindows(callback, hwnds)
+                
+                if hwnds:
+                    hwnd = hwnds[0]
+                    # Bring to top
+                    try:
+                        win32gui.SetForegroundWindow(hwnd)
+                    except:
+                        # Sometimes fails if user is doing something else, try generic bringToTop
+                        pass
+                        
+                    # Get Screen Coordinates
+                    rect = win32gui.GetWindowRect(hwnd)
+                    x, y, w, h = rect
+                    center_x = (x + w) // 2
+                    center_y = (y + h) // 2
+                    
+                    # Move Physical Mouse
+                    win32api.SetCursorPos((center_x, center_y))
+                    
+                    # Small click to ensure focus
+                    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
+                    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+                    
+                    print(f"Moved mouse to {center_x}, {center_y}")
+                else:
+                    print("Window not found for mouse movement")
+                
+                # Restore title
+                await tab.evaluate(f"document.title = '{original_title}';")
+                
+            except Exception as e:
+                print(f"Auto-focus error: {e}")
+
+        await activate_window_and_move_mouse()
+        await asyncio.sleep(0.5) 
+        
+        # Helper to get current DPR
+        async def get_dpr():
+            val = await tab.evaluate("window.devicePixelRatio")
+            return float(val) if val else 1.0
+
+        current_dpr = await get_dpr()
+            
+        # Helper: Send Ctrl + Scroll
+        def send_ctrl_scroll(direction: Literal["in", "out"]):
+            # Press Ctrl
+            win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+            time.sleep(0.1) # Increased delay
+            
+            # Scroll
+            scroll_amount = 120 if direction == "in" else -120
+            win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 0, 0, scroll_amount, 0)
+            time.sleep(0.1)
+            
+            # Release Ctrl
+            win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+        
+        # Helper: Send Ctrl + 0 (Reset)
+        def send_ctrl_zero():
+            print("Sending Ctrl+0 (Reset)...")
+            win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+            time.sleep(0.1)
+            win32api.keybd_event(0x30, 0, 0, 0)
+            time.sleep(0.1)
+            win32api.keybd_event(0x30, 0, win32con.KEYEVENTF_KEYUP, 0)
+            win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+
+        # Execution Logic
+        if action == "reset":
+            send_ctrl_zero()
+            await asyncio.sleep(0.5)
+            # Verify if it worked
+            print(f"DPR after reset: {await get_dpr()}")
+            return True
+
+        target_dpr = None
+        if action == "custom" and customScale is not None:
+            target_dpr = float(customScale)
+            print(f"Targeting DPR: {target_dpr}")
+            
+            # Reset first
+            send_ctrl_zero()
+            await asyncio.sleep(0.5)
+        
+        max_attempts = 60 if target_dpr else times
+        
+        for i in range(max_attempts):
+            step_action = None
+            
+            if target_dpr is not None:
+                dpr = await get_dpr()
+                if abs(dpr - target_dpr) < 0.1:
+                    print(f"Reached target DPR: {dpr}")
+                    break
+                
+                if dpr > target_dpr:
+                    step_action = "out"
+                else:
+                    step_action = "in"
+                    
+                print(f"Current: {dpr}, Target: {target_dpr} -> Zoom {step_action}")
+            else:
+                step_action = "in" if action == "in" else "out"
+            
+            # Perform physical action
+            send_ctrl_scroll(step_action)
+            await asyncio.sleep(0.5) # Allow browser animation time
+            
+        final_dpr = await get_dpr()
+        print(f"Final DPR: {final_dpr}")
         return True
         
     except Exception as e:
-        print(f"❌ Error zooming page: {e}")
+        print(f"Error zooming page: {e}")
         return False

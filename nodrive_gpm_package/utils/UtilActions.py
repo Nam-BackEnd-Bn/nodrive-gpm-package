@@ -999,7 +999,7 @@ async def scrollElementToTopOrBottom(
     isGoOnTop: bool = False,
 ) -> bool:
     """
-    Scroll element to top or bottom
+    Scroll element to top or bottom using mouse wheel events
     """
     if timeDelay > 0:
         await asyncio.sleep(timeDelay)
@@ -1023,13 +1023,36 @@ async def scrollElementToTopOrBottom(
     
     # Move mouse to element to simulate user focus
     await elm.mouse_move()
+    
+    # Get element position for the wheel event target
+    pos_elm = await elm.get_position()
+    center_x = pos_elm.x + pos_elm.width / 2
+    center_y = pos_elm.y + pos_elm.height / 2
 
     if timeDelayAction > 0:
         await asyncio.sleep(timeDelayAction)
 
-    if position == "top":
-        await elm.apply("(el) => { el.scrollTop = 0; }")
-    else:
-        await elm.apply("(el) => { el.scrollTop = el.scrollHeight; }")
+    # Use mouse wheel to scroll
+    # 100 is a rough standard scroll tick. Positive for down (bottom), negative for up (top).
+    delta_y = 100 if position != "top" else -100
+    
+    # Scroll multiple times to simulate reading/scrolling or reaching the end
+    # We use a loop to send multiple events
+    num_scrolls = 20
+    
+    print(f"🖱️ Scrolling {position} {num_scrolls} times...")
+    
+    for _ in range(num_scrolls):
+        await tab.send(
+            nd.cdp.input_.dispatch_mouse_event(
+                type_="mouseWheel",
+                x=center_x,
+                y=center_y,
+                delta_x=0,
+                delta_y=delta_y
+            )
+        )
+        # Small delay between scrolls to mimic human speed and allow UI updates
+        await asyncio.sleep(random.uniform(0.1, 0.3))
     
     return True

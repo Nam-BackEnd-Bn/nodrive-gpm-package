@@ -24,3 +24,4 @@ mutagen>=1.47.0  # For audio file metadata
 # Optional but recommended
 python-dotenv>=1.0.0  # For loading .env files
 PySocks>=1.7.1  # For SOCKS proxy support
+loguru==0.7.3

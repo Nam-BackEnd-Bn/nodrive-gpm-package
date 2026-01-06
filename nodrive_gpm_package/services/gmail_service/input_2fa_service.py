@@ -139,7 +139,7 @@ class InputTwoFAService:
 
     async def set_input_code(self):
         # 1. Try to select a challenge method if we are on that screen
-        if not self._check_has_input_2fa():
+        if not await self._check_has_input_2fa():
             await self._select_challenge_method()
 
         # 2. Check if the input field is available

@@ -981,3 +981,55 @@ async def goOnTopBrowser(tab: nd.Tab):
             await UtilActionsBrowser.bringBrowserToTop(tab=tab)
     except:
         pass
+
+
+async def scrollElementToTopOrBottom(
+    tab: nd.Tab,
+    position: Literal["top", "bottom"] = "top",
+    rootTag: ElementsTag = None,
+    attributes: Dict[AttributesTag, str] = None,
+    parentTag: ElementsTag = None,
+    parentAttributes: Dict[AttributesTag, str] = None,
+    text: str = None,
+    isContains: bool = True,
+    timeout: float = 30,
+    timeDelay: float = 0,
+    timeDelayAction: float = 0,
+    numberActionFakePerson: int = 1,
+    isGoOnTop: bool = False,
+) -> bool:
+    """
+    Scroll element to top or bottom
+    """
+    if timeDelay > 0:
+        await asyncio.sleep(timeDelay)
+
+    elm = await getElement(
+        tab=tab,
+        rootTag=rootTag,
+        attributes=attributes,
+        parentTag=parentTag,
+        parentAttributes=parentAttributes,
+        timeout=timeout,
+        text=text,
+        isContains=isContains,
+        isGoOnTop=isGoOnTop,
+    )
+    if not elm:
+        raise Exception("Element not found")
+
+    if numberActionFakePerson:
+        await humanLikeMouseMovement(tab=tab, max_movements=numberActionFakePerson)
+    
+    # Move mouse to element to simulate user focus
+    await elm.mouse_move()
+
+    if timeDelayAction > 0:
+        await asyncio.sleep(timeDelayAction)
+
+    if position == "top":
+        await elm.apply("(el) => { el.scrollTop = 0; }")
+    else:
+        await elm.apply("(el) => { el.scrollTop = el.scrollHeight; }")
+    
+    return True

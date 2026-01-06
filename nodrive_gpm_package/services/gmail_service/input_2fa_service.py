@@ -41,7 +41,7 @@ class InputTwoFAService:
         logger.warning("⚠️ No challenge selection needed or none found.")
         return False
 
-    async def _check_input_code(self):
+    async def _check_has_input_2fa(self):
         try:
             from nodrive_gpm_package.utils import UtilActions
             # Try to find any common 2FA input field
@@ -139,13 +139,14 @@ class InputTwoFAService:
 
     async def set_input_code(self):
         # 1. Try to select a challenge method if we are on that screen
-        await self._select_challenge_method()
+        if not self._check_has_input_2fa():
+            await self._select_challenge_method()
 
         # 2. Check if the input field is available
-        if not await self._check_input_code():
+        if not await self._check_has_input_2fa():
             # Retry checking again after a short delay in case selection just happened
             await asyncio.sleep(2)
-            if not await self._check_input_code():
+            if not await self._check_has_input_2fa():
                 raise Exception('ERROR_2FA_FIELD_NOT_FOUND')
 
         # 3. Input the code

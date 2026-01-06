@@ -1056,3 +1056,95 @@ async def scrollElementToTopOrBottom(
         await asyncio.sleep(random.uniform(0.1, 0.3))
     
     return True
+
+
+async def zoomPage(
+    tab: nd.Tab,
+    action: Literal["in", "out", "reset"] = "in",
+    times: int = 1
+) -> bool:
+    """
+    Zoom page in or out using keyboard shortcuts
+    action: "in" (Ctrl + +), "out" (Ctrl + -), "reset" (Ctrl + 0)
+    """
+    try:
+        modifier = 2  # Control key
+        
+        for _ in range(times):
+            if action == "in":
+                # Ctrl + = (Chrome usually treats Ctrl+= as Zoom In)
+                await tab.send(
+                    nd.cdp.input_.dispatch_key_event(
+                        type_="keyDown",
+                        modifiers=modifier,
+                        text="=",
+                        unmodified_text="=",
+                        key="=",
+                        code="Equal",
+                        windows_virtual_key_code=187
+                    )
+                )
+                await tab.send(
+                    nd.cdp.input_.dispatch_key_event(
+                        type_="keyUp",
+                        modifiers=modifier,
+                        key="=",
+                        code="Equal",
+                        windows_virtual_key_code=187
+                    )
+                )
+            elif action == "out":
+                # Ctrl + -
+                await tab.send(
+                    nd.cdp.input_.dispatch_key_event(
+                        type_="keyDown",
+                        modifiers=modifier,
+                        text="-",
+                        unmodified_text="-",
+                        key="-",
+                        code="Minus",
+                        windows_virtual_key_code=189
+                    )
+                )
+                await tab.send(
+                    nd.cdp.input_.dispatch_key_event(
+                        type_="keyUp",
+                        modifiers=modifier,
+                        key="-",
+                        code="Minus",
+                        windows_virtual_key_code=189
+                    )
+                )
+            elif action == "reset":
+                # Ctrl + 0
+                await tab.send(
+                    nd.cdp.input_.dispatch_key_event(
+                        type_="keyDown",
+                        modifiers=modifier,
+                        text="0",
+                        unmodified_text="0",
+                        key="0",
+                        code="Digit0",
+                        windows_virtual_key_code=48
+                    )
+                )
+                await tab.send(
+                    nd.cdp.input_.dispatch_key_event(
+                        type_="keyUp",
+                        modifiers=modifier,
+                        key="0",
+                        code="Digit0",
+                        windows_virtual_key_code=48
+                    )
+                )
+                break # Reset only needs to run once
+            
+            # Small delay between multiple zooms
+            if times > 1:
+                await asyncio.sleep(0.1)
+                
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error zooming page: {e}")
+        return False

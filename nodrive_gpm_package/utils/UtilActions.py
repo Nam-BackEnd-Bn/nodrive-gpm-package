@@ -1151,16 +1151,22 @@ async def zoomPage(
 
         current_dpr = await get_dpr()
             
-        # Helper: Send Ctrl + Scroll
-        def send_ctrl_scroll(direction: Literal["in", "out"]):
+        # Helper: Send Ctrl + Key
+        def send_zoom_key(direction: Literal["in", "out"]):
             # Press Ctrl
             win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
-            time.sleep(0.1) # Increased delay
-            
-            # Scroll
-            scroll_amount = 120 if direction == "in" else -120
-            win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 0, 0, scroll_amount, 0)
             time.sleep(0.1)
+            
+            # Press +/-
+            # VK_OEM_PLUS = 0xBB (+)
+            # VK_OEM_MINUS = 0xBD (-)
+            key_code = 0xBB if direction == "in" else 0xBD
+            
+            win32api.keybd_event(key_code, 0, 0, 0)
+            time.sleep(0.1)
+            
+            # Release +/-
+            win32api.keybd_event(key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
             
             # Release Ctrl
             win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
@@ -1213,7 +1219,7 @@ async def zoomPage(
                 step_action = "in" if action == "in" else "out"
             
             # Perform physical action
-            send_ctrl_scroll(step_action)
+            send_zoom_key(step_action)
             await asyncio.sleep(0.5) # Allow browser animation time
             
         final_dpr = await get_dpr()

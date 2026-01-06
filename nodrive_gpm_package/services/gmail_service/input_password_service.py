@@ -1,6 +1,6 @@
 from loguru import logger
 
-from nodrive_gpm_package.services.gmail_service.gmail_helper import list_msgs_pw_not_valid
+from nodrive_gpm_package.services.gmail_service.gmail_helper import list_msgs_pw_not_valid, next_button_strategies
 
 
 class InputPasswordService:

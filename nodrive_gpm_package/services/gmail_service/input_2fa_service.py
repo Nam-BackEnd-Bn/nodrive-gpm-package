@@ -146,7 +146,7 @@ class InputTwoFAService:
             # Retry checking again after a short delay in case selection just happened
             await asyncio.sleep(2)
             if not await self._check_input_code():
-                return False
+                raise Exception('ERROR_2FA_FIELD_NOT_FOUND')
 
         # 3. Input the code
         await self._fill_input_code()

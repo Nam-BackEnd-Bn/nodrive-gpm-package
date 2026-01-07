@@ -36,6 +36,13 @@ def renameDownloadedFileAndMoveToFolder(
     maxRetries=500,
     callback: any = None,
 ) -> str:
+    """
+    Rename the most recently downloaded file and move it to a target folder.
+
+    WARNING: This function is synchronous and BLOCKING. It contains a loop with time.sleep()
+    and will block the event loop if called directly in an async function.
+    Run this in a separate thread/executor if used in an async context.
+    """
 
     # Get the initial number of files in the Downloads folder
     print("\n✂️✂️✂️RENAME AND MOVE FOLDER✂️✂️✂️")

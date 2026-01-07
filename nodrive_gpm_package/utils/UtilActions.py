@@ -1152,10 +1152,10 @@ async def zoomPage(
         current_dpr = await get_dpr()
             
         # Helper: Send Ctrl + Key
-        def send_zoom_key(direction: Literal["in", "out"]):
+        async def send_zoom_key(direction: Literal["in", "out"]):
             # Press Ctrl
             win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
             
             # Press +/-
             # VK_OEM_PLUS = 0xBB (+)
@@ -1163,7 +1163,7 @@ async def zoomPage(
             key_code = 0xBB if direction == "in" else 0xBD
             
             win32api.keybd_event(key_code, 0, 0, 0)
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
             
             # Release +/-
             win32api.keybd_event(key_code, 0, win32con.KEYEVENTF_KEYUP, 0)
@@ -1172,18 +1172,18 @@ async def zoomPage(
             win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
         
         # Helper: Send Ctrl + 0 (Reset)
-        def send_ctrl_zero():
+        async def send_ctrl_zero():
             print("Sending Ctrl+0 (Reset)...")
             win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
             win32api.keybd_event(0x30, 0, 0, 0)
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
             win32api.keybd_event(0x30, 0, win32con.KEYEVENTF_KEYUP, 0)
             win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
 
         # Execution Logic
         if action == "reset":
-            send_ctrl_zero()
+            await send_ctrl_zero()
             await asyncio.sleep(0.5)
             # Verify if it worked
             print(f"DPR after reset: {await get_dpr()}")
@@ -1195,7 +1195,7 @@ async def zoomPage(
             print(f"Targeting DPR: {target_dpr}")
             
             # Reset first
-            send_ctrl_zero()
+            await send_ctrl_zero()
             await asyncio.sleep(0.5)
         
         max_attempts = 60 if target_dpr else times
@@ -1219,7 +1219,7 @@ async def zoomPage(
                 step_action = "in" if action == "in" else "out"
             
             # Perform physical action
-            send_zoom_key(step_action)
+            await send_zoom_key(step_action)
             await asyncio.sleep(0.5) # Allow browser animation time
             
         final_dpr = await get_dpr()

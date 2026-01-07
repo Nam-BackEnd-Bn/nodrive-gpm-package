@@ -3,6 +3,7 @@
 from typing import Optional, List, Union
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
+from urllib.parse import urlparse
 
 
 class ProfileCreateRequest(BaseModel):
@@ -94,6 +95,7 @@ class ProfileResponse(BaseModel):
     group_id: Optional[Union[str, int]] = Field(None, description="Group ID")
     created_at: Optional[str] = Field(None, description="Creation timestamp")
     status: Optional[str] = Field(None, description="Current status")
+    remote_debugging_address: Optional[str] = Field(None, description="Chrome DevTools Protocol address")
     
     @field_validator('id', 'group_id', mode='before')
     @classmethod
@@ -103,6 +105,49 @@ class ProfileResponse(BaseModel):
             return str(v)
         return v
     
+    @property
+    def host(self) -> Optional[str]:
+        """Extract host from debugging address"""
+        if not self.remote_debugging_address:
+            return None
+
+        try:
+            # Handle different formats
+            address = self.remote_debugging_address
+            if not address.startswith("http"):
+                address = f"http://{address}"
+
+            parsed = urlparse(address)
+            return parsed.hostname
+        except Exception:
+            # Fallback for simple IP:PORT
+            if ":" in self.remote_debugging_address:
+                return self.remote_debugging_address.split(":")[0]
+            return None
+
+    @property
+    def port(self) -> Optional[int]:
+        """Extract port from debugging address"""
+        if not self.remote_debugging_address:
+            return None
+
+        try:
+            # Handle different formats
+            address = self.remote_debugging_address
+            if not address.startswith("http"):
+                address = f"http://{address}"
+
+            parsed = urlparse(address)
+            return parsed.port
+        except Exception:
+            # Fallback for simple IP:PORT
+            if ":" in self.remote_debugging_address:
+                try:
+                    return int(self.remote_debugging_address.split(":")[1])
+                except ValueError:
+                    return None
+            return None
+
     class Config:
         from_attributes = True
 
@@ -127,12 +172,30 @@ class ProfileOpenResponse(BaseModel):
     @property
     def host(self) -> str:
         """Extract host from debugging address"""
-        return self.remote_debugging_address.split(":")[0]
+        try:
+            # Handle different formats
+            address = self.remote_debugging_address
+            if not address.startswith("http"):
+                address = f"http://{address}"
+
+            parsed = urlparse(address)
+            return parsed.hostname or self.remote_debugging_address.split(":")[0]
+        except Exception:
+            return self.remote_debugging_address.split(":")[0]
     
     @property
     def port(self) -> int:
         """Extract port from debugging address"""
-        return int(self.remote_debugging_address.split(":")[1])
+        try:
+            # Handle different formats
+            address = self.remote_debugging_address
+            if not address.startswith("http"):
+                address = f"http://{address}"
+
+            parsed = urlparse(address)
+            return parsed.port or int(self.remote_debugging_address.split(":")[1])
+        except Exception:
+            return int(self.remote_debugging_address.split(":")[1])
 
 
 class ProfileListResponse(BaseModel):

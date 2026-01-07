@@ -141,39 +141,46 @@ class UniversalDownloader:
     @staticmethod
     async def download_http_url(url: str, dir_store: str) -> str:
         """
-        Download HTTP/HTTPS URL using requests
+        Download HTTP/HTTPS URL using requests in a non-blocking way
         """
+        import asyncio
         import requests
 
+        def _blocking_download():
+            try:
+                # Get filename from URL
+                filename = UniversalDownloader.extract_filename_from_url(url)
+
+                # Download file
+                response = requests.get(url, stream=True)
+                response.raise_for_status()
+
+                # Get content type and determine extension
+                content_type = (
+                    response.headers.get("content-type", "").split(";")[0].strip()
+                )
+                extension = UniversalDownloader.get_file_extension(content_type, url)
+
+                # Ensure filename has extension
+                if not filename.endswith(extension):
+                    filename = filename + extension
+
+                file_path = os.path.join(dir_store, filename)
+
+                # Write file
+                with open(file_path, "wb") as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+
+                file_size = os.path.getsize(file_path)
+                # print(f"✅ HTTP download successful: {file_path} ({file_size} bytes)")
+                return file_path
+            except Exception as e:
+                raise e
+
         try:
-            # Get filename from URL
-            filename = UniversalDownloader.extract_filename_from_url(url)
-
-            # Download file
-            response = requests.get(url, stream=True)
-            response.raise_for_status()
-
-            # Get content type and determine extension
-            content_type = (
-                response.headers.get("content-type", "").split(";")[0].strip()
-            )
-            extension = UniversalDownloader.get_file_extension(content_type, url)
-
-            # Ensure filename has extension
-            if not filename.endswith(extension):
-                filename = filename + extension
-
-            file_path = os.path.join(dir_store, filename)
-
-            # Write file
-            with open(file_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-
-            file_size = os.path.getsize(file_path)
-            # print(f"✅ HTTP download successful: {file_path} ({file_size} bytes)")
-            return file_path
-
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None, _blocking_download)
         except Exception as e:
             raise Exception(f"HTTP download failed: {e}")
 

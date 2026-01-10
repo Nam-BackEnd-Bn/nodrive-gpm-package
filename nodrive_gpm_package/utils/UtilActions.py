@@ -8,6 +8,23 @@ except ImportError:
     win32con = None
 from . import UtilActionsBrowser, UtilUserAgent
 
+"""
+Utility functions for nodriver automation, adapted from Selenium-based utilities.
+These functions extend the nodrive_gpm_package.utils.UtilActions functionality.
+
+To use these functions in the nodrive_gpm_package, add them to:
+nodrive_gpm_package/utils/__init__.py or nodrive_gpm_package/utils/util_actions.py
+
+These are adapted versions that work with nodriver instead of Selenium.
+"""
+import asyncio
+import random
+import time
+from typing import Literal, Optional
+from loguru import logger
+import nodriver as nd
+
+
 ElementsTag = Literal[
     "textarea",
     "header",
@@ -1229,3 +1246,255 @@ async def zoomPage(
     except Exception as e:
         print(f"Error zooming page: {e}")
         return False
+
+
+
+async def click_base_on_element(
+    driver: nd.Tab,
+    elm: nd.Element,
+    x_offset: Optional[int] = None,
+    y_offset: Optional[int] = None,
+    repetitions: int = 1,
+    time_delay: float = 1,
+    number_action_fake_person: int = 1,
+    type_click: Literal["core", "location"] = "core",
+):
+    """
+    Click on an element with various options and retry logic.
+    
+    Args:
+        driver (nd.Tab): The nodriver Tab instance to control the browser.
+        elm (nd.Element): The Element to click on.
+        x_offset (int, optional): X offset from the element's origin. Default is None.
+        y_offset (int, optional): Y offset from the element's origin. Default is None.
+        repetitions (int, optional): Number of times to repeat the click action. Default is 1.
+        time_delay (float, optional): Wait time in seconds before executing. Default is 1 second.
+        number_action_fake_person (int, optional): Number of random mouse movements to simulate human behavior. Default is 1.
+        type_click (Literal["core", "location"], optional): Type of click ("core" for direct click, "location" for mouse position click). Default is "core".
+    
+    Raises:
+        Exception: If click fails after all retry attempts.
+    """
+    if time_delay > 0:
+        await asyncio.sleep(time_delay)
+
+    await random_mouse_jiggle(driver=driver, number_action_fake_person=number_action_fake_person)
+
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
+            position = await elm.get_position()
+            width = position.width
+            height = position.height
+            
+            for idx in range(repetitions):
+                if x_offset is not None and y_offset is not None:
+                    # Calculate center point and apply offset
+                    center_x = position.x + width / 2
+                    center_y = position.y + height / 2
+                    target_x = center_x - width // 2 + x_offset
+                    target_y = center_y - height // 2 + y_offset
+                    
+                    await driver.mouse_move(x=target_x, y=target_y)
+                    await driver.mouse_click(x=target_x, y=target_y, button="left")
+                else:
+                    if type_click == "core":
+                        logger.debug("🥝Click core🥝")
+                        is_in_view = await is_elm_in_viewport(
+                            driver=driver, element=elm
+                        )
+                        logger.debug(f"elm position::: {position}")
+                        logger.debug(f"is_in_view::: {is_in_view}")
+                        
+                        # For nodriver, we can use element.click() or mouse click
+                        try:
+                            await elm.click()
+                        except:
+                            # Fallback to mouse click at element center
+                            center_x = position.x + width / 2
+                            center_y = position.y + height / 2
+                            await driver.mouse_click(x=center_x, y=center_y, button="left")
+                    else:
+                        logger.debug("📍Click location📍")
+                        is_in_view = await is_elm_in_viewport(
+                            driver=driver, element=elm
+                        )
+                        logger.debug(f"elm position::: {position}")
+                        logger.debug(f"is_in_view::: {is_in_view}")
+                        
+                        center_x = position.x + width / 2
+                        center_y = position.y + height / 2
+                        await driver.mouse_move(x=center_x, y=center_y)
+                        await driver.mouse_click(x=center_x, y=center_y, button="left")
+                
+                await asyncio.sleep(0.2)
+
+            return
+
+        except Exception as e:
+            logger.warning(f"Click Error::: {e}")
+            logger.info(
+                f"Retrying... ({attempt+1}/{max_attempts})"
+            )
+            await asyncio.sleep(1)
+            # Re-fetch element position for next attempt
+            try:
+                position = await elm.get_position()
+            except:
+                raise Exception("Element became stale, cannot retry")
+
+    raise Exception("Click error: Failed after all retry attempts")
+
+
+async def is_elm_in_viewport(
+    driver: nd.Tab,
+    element: nd.Element,
+    percent_horizontal: float = 30,
+    percent_vertical: float = 30,
+) -> bool:
+    """
+    Check if element is in viewport.
+    
+    Args:
+        driver (nd.Tab): The nodriver Tab instance.
+        element (nd.Element): Element to check.
+        percent_horizontal (float, optional): Horizontal visibility percentage threshold. Default is 30.
+        percent_vertical (float, optional): Vertical visibility percentage threshold. Default is 30.
+    
+    Returns:
+        bool: True if element is sufficiently visible in viewport, False otherwise.
+    """
+    try:
+        # Get viewport size
+        viewport_info = await driver.evaluate("""
+            () => ({
+                width: window.innerWidth,
+                height: window.innerHeight,
+                x_offset: window.pageXOffset,
+                y_offset: window.pageYOffset
+            })
+        """)
+        
+        window_width = viewport_info["width"]
+        window_height = viewport_info["height"]
+        window_x_offset = viewport_info["x_offset"]
+        window_y_offset = viewport_info["y_offset"]
+
+        # Get element bounding rect using element evaluation
+        rect_info = await element.evaluate("""
+            (el) => {
+                const rect = el.getBoundingClientRect();
+                return {
+                    yStart: rect.top,
+                    yEnd: rect.bottom,
+                    height: rect.height,
+                    width: rect.width,
+                    xStart: rect.left,
+                    xEnd: rect.right
+                };
+            }
+        """)
+
+        # Get element position information
+        element_left = rect_info["xStart"] + window_x_offset  # Convert to absolute coordinates
+        element_right = rect_info["xEnd"] + window_x_offset
+        element_top = rect_info["yStart"] + window_y_offset
+        element_bottom = rect_info["yEnd"] + window_y_offset
+        element_width = rect_info["width"]
+        element_height = rect_info["height"]
+
+        # Calculate viewport boundaries
+        viewport_left = window_x_offset
+        viewport_right = window_x_offset + window_width
+        viewport_top = window_y_offset
+        viewport_bottom = window_y_offset + window_height
+
+        # Check if element intersects with viewport
+        is_visible_horizontally = (element_left < viewport_right) and (
+            element_right > viewport_left
+        )
+        is_visible_vertically = (element_top < viewport_bottom) and (
+            element_bottom > viewport_top
+        )
+
+        # If not fully visible, check overlap percentage
+        if is_visible_horizontally and is_visible_vertically:
+            # Calculate overlap area
+            overlap_left = max(element_left, viewport_left)
+            overlap_right = min(element_right, viewport_right)
+            overlap_top = max(element_top, viewport_top)
+            overlap_bottom = min(element_bottom, viewport_bottom)
+
+            overlap_width = overlap_right - overlap_left
+            overlap_height = overlap_bottom - overlap_top
+
+            # Calculate overlap ratio relative to element size
+            horizontal_overlap_ratio = overlap_width / element_width if element_width > 0 else 0
+            vertical_overlap_ratio = overlap_height / element_height if element_height > 0 else 0
+
+            # Get element info for logging
+            try:
+                tag_name = await element.evaluate("el => el.tagName")
+                element_text = await element.evaluate("el => el.textContent || el.innerText || ''")
+                logger.debug(f"element::: {{'tag': '{tag_name}', 'text': '{element_text[:50]}...'}}")
+            except:
+                pass
+
+            # Check if at least the specified percentage is visible
+            return (
+                horizontal_overlap_ratio * 100 >= percent_horizontal
+                and vertical_overlap_ratio * 100 >= percent_vertical
+            )
+
+        return False
+    except Exception as e:
+        logger.debug(f"Error checking element in viewport: {e}")
+        return False
+
+
+async def random_mouse_jiggle(driver: nd.Tab, number_action_fake_person: int = 3):
+    """
+    Move mouse randomly to simulate human behavior.
+    
+    Args:
+        driver (nd.Tab): The nodriver Tab instance to control the browser.
+        number_action_fake_person (int, optional): Number of random mouse movements to simulate human behavior. Default is 3.
+    """
+    if number_action_fake_person < 1:
+        return
+    
+    try:
+        viewport_info = await driver.evaluate("""
+            () => ({
+                width: window.innerWidth,
+                height: window.innerHeight
+            })
+        """)
+        
+        width = viewport_info["width"] // 5
+        height = viewport_info["height"] // 5
+
+        body = await driver.query_selector("body")
+        if not body:
+            return
+
+        body_position = await body.get_position()
+        base_x = body_position.x
+        base_y = body_position.y
+
+        for _ in range(number_action_fake_person):
+            x_offset = random.randint(0, width)
+            y_offset = random.randint(0, height)
+            try:
+                target_x = base_x + x_offset
+                target_y = base_y + y_offset
+                await driver.mouse_move(x=target_x, y=target_y)
+                await asyncio.sleep(random.uniform(0.05, 0.1))
+                await driver.mouse_move(x=target_x + random.randint(-10, 10), y=target_y + random.randint(-10, 10))
+                await asyncio.sleep(random.uniform(0.05, 0.1))
+            except Exception as e:
+                logger.debug(f"Mouse movement error: {e}")
+
+    except Exception as e:
+        logger.warning(f"Something went wrong when moving the mouse!!! {e}")
+

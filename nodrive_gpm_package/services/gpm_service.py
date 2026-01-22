@@ -237,11 +237,15 @@ class GPMService:
                         break
                 
                 if current_profile and hasattr(current_profile, "remote_debugging_address"):
-                    host, port = current_profile.remote_debugging_address.split(":")
-                    browser = await self._connect_to_browser(host, int(port), profile_name)
+                    # Use schema properties for robust parsing
+                    host = current_profile.host
+                    port = current_profile.port
                     
-                    if browser:
-                        return browser
+                    if host and port:
+                        browser = await self._connect_to_browser(host, port, profile_name)
+
+                        if browser:
+                            return browser
                 
                 # Connection failed, close and restart
                 print(f"🔄 [{profile_name}] Connection failed, restarting...")
